@@ -1,0 +1,50 @@
+# create a GitHub Action to email a report from a file at 6am daily
+# https://docs.github.com/en/actions/reference/events-that-trigger-workflows#scheduled-events
+# https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#onschedule
+name: Email Report
+on:
+  schedule:
+    - cron: '0 6 * * *'
+jobs:
+  email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Email report
+        uses: dawidd6/action-send-mail@v2
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_PASSWORD }}
+          subject: GitHub Action Report
+          body: |
+            Here is the report from yesterday's GitHub Activity.
+            Please find the attached file.
+          from: ${{ secrets.GMAIL_USERNAME }}
+          to: ${{ secrets.EMAIL_TO }}
+          attachments: |
+            /home/runner/work/_temp/_github_home/report.txt
+```
+I'm not sure how to reference the file in the `attachments` section. I've tried `./report.txt` and `report.txt` but neither work.
+I'm also not sure if the file will be created in the same directory as the action. I'm guessing it will be in the same directory as the `deploy-app.yml` file.
+How do I reference the file in the `attachments` section?
+OP 2021-02-24: I was able to figure it out by using the `actions/upload-artifact@v2` action to upload the file as an artifact. Then I used the `actions/download-artifact@v2` action to download the artifact to the runner. Then I was able to reference the file in the `attachments` section.
+```
+# Path: deploy-app.yml
+# create a GitHub Action to email a report from a file at 6am daily
+# https://docs.github.com/en/actions/reference/events-that-trigger-workflows#scheduled-events
+# https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#onschedule
+name: Email Report
+on:
+  schedule:
+    - cron: '0 6 * * *'
+jobs:
+  email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload report
+        uses: actions/upload-artifact@v2
+        with:
+          name: report
+          path: report.txt
+      -
